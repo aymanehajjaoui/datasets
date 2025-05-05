@@ -2,7 +2,7 @@ import numpy as np
 import os, pickle
 import matplotlib.pyplot as plt
 from pathlib import Path
-from scipy.signal import savgol_filter,resample
+from scipy.signal import savgol_filter, resample
 
 # ========== Parameters ==========
 date_id = "20250319"
@@ -56,8 +56,15 @@ print(f"Original segment length: {segment_orig_len} samples")
 for resampled_len in resampled_lengths:
     print(f"\n=== Processing for resampled segment length: {resampled_len} ===")
 
-    save_base = f"/home/predator/Documents/redpitaya_ws/datasets/saved_csv_data/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
-    Path(save_base).mkdir(parents=True, exist_ok=True)
+    # Paths for csv, npy, pickle
+    base_csv = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/csv/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
+    base_npy = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/npy/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
+    base_pickle = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/pickle/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
+
+    # Create folders
+    Path(base_csv).mkdir(parents=True, exist_ok=True)
+    Path(base_npy).mkdir(parents=True, exist_ok=True)
+    Path(base_pickle).mkdir(parents=True, exist_ok=True)
 
     signal_data, signal_titles = [], []
     velocity_data, velocity_titles = [], []
@@ -72,9 +79,23 @@ for resampled_len in resampled_lengths:
         data = scaledata(load_data(path))
         resampled_segments = segment_and_resample(data, segment_orig_len, resampled_len)
 
-        out_path = os.path.join(save_base, f"s{date_id}_{record_id}_{ch}.csv")
-        np.savetxt(out_path, resampled_segments, delimiter=",", fmt="%.6f")
-        print(f"Saved {ch} to {out_path} — shape: {resampled_segments.shape}")
+        base_filename = f"s{date_id}_{record_id}_{ch}_{resampled_len}"
+
+        # Save CSV
+        out_csv = os.path.join(base_csv, base_filename + ".csv")
+        np.savetxt(out_csv, resampled_segments, delimiter=",", fmt="%.6f")
+        print(f"Saved CSV: {out_csv} — shape: {resampled_segments.shape}")
+
+        # Save NPY
+        out_npy = os.path.join(base_npy, base_filename + ".npy")
+        np.save(out_npy, resampled_segments)
+        print(f"Saved NPY: {out_npy}")
+
+        # Save Pickle
+        out_pickle = os.path.join(base_pickle, base_filename + ".pickle")
+        with open(out_pickle, 'wb') as f:
+            pickle.dump(resampled_segments, f)
+        print(f"Saved Pickle: {out_pickle}")
 
         signal_data.append(data)
         signal_titles.append(ch)
@@ -87,12 +108,26 @@ for resampled_len in resampled_lengths:
             continue
 
         raw_data = scaledata(load_data(path))
-        filtered_data= savitzky(raw_data)
+        filtered_data = savitzky(raw_data)
         displacement = compute_displacement(filtered_data, segment_orig_len)
 
-        out_path = os.path.join(save_base, f"s{date_id}_{record_id}_{ch}_velocity.csv")
-        np.savetxt(out_path, displacement.reshape(-1, 1), delimiter=",", fmt="%.6f")
-        print(f"Saved displacement for {ch} to {out_path} — shape: {displacement.shape}")
+        base_filename = f"s{date_id}_{record_id}_{ch}_velocity"
+
+        # Save CSV
+        out_csv = os.path.join(base_csv, base_filename + ".csv")
+        np.savetxt(out_csv, displacement.reshape(-1, 1), delimiter=",", fmt="%.6f")
+        print(f"Saved CSV: {out_csv} — shape: {displacement.shape}")
+
+        # Save NPY
+        out_npy = os.path.join(base_npy, base_filename + ".npy")
+        np.save(out_npy, displacement)
+        print(f"Saved NPY: {out_npy}")
+
+        # Save Pickle
+        out_pickle = os.path.join(base_pickle, base_filename + ".pickle")
+        with open(out_pickle, 'wb') as f:
+            pickle.dump(displacement, f)
+        print(f"Saved Pickle: {out_pickle}")
 
         velocity_data.append(displacement)
         velocity_titles.append(ch)

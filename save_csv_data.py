@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle, glob, os
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter,resample
 
 # ========== Parameters ==========
 date_id = "20250319"
 record_id = "420"
 base_path = f"/home/predator/Documents/redpitaya_ws/datasets/collected_data/s{date_id}"
-save_base = f"/home/predator/Documents/redpitaya_ws/datasets/saved_csv_data/s{date_id}/s{date_id}_{record_id}"
+save_base = f"/home/predator/Documents/redpitaya_ws/datasets/saved_csv_raw/s{date_id}/s{date_id}_{record_id}"
 channels = [1, 2, 3, 4]
 
 save_filtered_velocity = True
@@ -82,7 +82,7 @@ if velocity_channel in data_dict:
     velocity_source = savitzky(data_dict[velocity_channel]) if save_filtered_velocity else data_dict[velocity_channel]
     velocity = np.diff(velocity_source)
     save_path = os.path.join(save_base, f"s{date_id}_{record_id}_{velocity_channel}_velocity.csv")
-    np.savetxt(save_path, velocity.reshape(-1, 1), delimiter=",", fmt="%.6f")  # <-- corrected
+    np.savetxt(save_path, velocity.reshape(-1, 1), delimiter=",", fmt="%.6f")
     print(f"Saved velocity CSV: {save_path} with shape {velocity.shape}")
 else:
     print(f"Velocity channel '{velocity_channel}' not found in data_dict.")

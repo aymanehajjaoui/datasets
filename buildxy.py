@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import os
 
@@ -12,19 +11,24 @@ x_channels = ["ch1"]
 y_channel = "ch3"
 test_ratio = 0.2
 
-root_input_base = f"/home/predator/Documents/redpitaya_ws/datasets/saved_csv_data/s{date_id}/s{date_id}_{record_id}"
+root_input_base = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/csv/s{date_id}/s{date_id}_{record_id}"
 output_base = f"/home/predator/Documents/redpitaya_ws/datasets/xydataset/csv/s{date_id}/s{date_id}_{record_id}"
 
-def load_flat_signal(input_base, channel):
-    file = os.path.join(input_base, f"s{date_id}_{record_id}_{channel}.csv")
+def load_flat_signal(input_base, channel, seg_len):
+    file = os.path.join(input_base, f"s{date_id}_{record_id}_{channel}_{seg_len}.csv")
     if not os.path.isfile(file):
         raise FileNotFoundError(f"Signal file not found: {file}")
     return np.loadtxt(file, delimiter=",").flatten()
 
-def load_velocity(input_base, channel):
+def load_velocity(input_base, channel, seg_len):
     file = os.path.join(input_base, f"s{date_id}_{record_id}_{channel}_velocity.csv")
     if not os.path.isfile(file):
-        raise FileNotFoundError(f"Velocity file not found: {file}")
+        alt_file = os.path.join(input_base, f"s{date_id}_{record_id}_{channel}_velocity_{seg_len}.csv")
+        if os.path.isfile(alt_file):
+            print(f"Loaded velocity from alternative file: {alt_file}")
+            return np.loadtxt(alt_file, delimiter=",").flatten()
+        else:
+            raise FileNotFoundError(f"Velocity file not found: {file} or {alt_file}")
     return np.loadtxt(file, delimiter=",").flatten()
 
 def segment_signal(signal, seg_len):
@@ -42,28 +46,22 @@ for seg_len in segment_lengths:
     # Load X
     x_segments = []
     for ch in x_channels:
-        flat = load_flat_signal(input_base, ch)
+        flat = load_flat_signal(input_base, ch, seg_len)
         segments = segment_signal(flat, seg_len)
         x_segments.append(segments)
         print(f"Channel {ch} loaded and segmented: {segments.shape}")
     X = np.stack(x_segments, axis=-1)  # (N, seg_len, channels)
 
     # Load and align y
-    y_raw = load_velocity(input_base, y_channel)
+    y_raw = load_velocity(input_base, y_channel, seg_len)
     if len(y_raw) < X.shape[0]:
         raise ValueError(f"Not enough velocity samples ({len(y_raw)}) for {X.shape[0]} signal segments")
     y = y_raw[:X.shape[0]]
     print(f"Velocity {y_channel} aligned to {len(y)} segments")
 
-    # Normalize X
-    N, L, C = X.shape
-    X_flat = X.reshape(N, -1)
-    scaler = MinMaxScaler()
-    X_scaled = scaler.fit_transform(X_flat).reshape(N, L, C)
-
-    # Train/Test split
+    # Train/Test split (no normalization)
     x_train, x_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=test_ratio, shuffle=False
+        X, y, test_size=test_ratio, shuffle=False
     )
 
     # Save
