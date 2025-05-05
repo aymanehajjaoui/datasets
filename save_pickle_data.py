@@ -5,9 +5,9 @@ import glob
 
 # Input identifiers
 date_id = "20250319"
-record_id = "409"
-custom_folder = "Exp_1310_405"
-data_length = "256"
+record_id = "303"
+custom_folder = "Exp_1310_405M"
+data_length = "109"
 data_len = "short"  # or "short"
 
 # Base paths
