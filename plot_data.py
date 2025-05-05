@@ -5,7 +5,7 @@ from scipy.signal import savgol_filter
 
 # ========== Parameters ==========
 date_id = "20250319"
-record_id = "200"
+record_id = "420"
 base_path = f"/home/predator/Documents/redpitaya_ws/datasets/collected_data/s{date_id}"
 channels = [1, 2, 3, 4]
 velocity_channel = "ch3"  # Channel used to compute displacement
@@ -49,7 +49,7 @@ for ch in channels:
     data_dict[ch_key] = data
 
     if sampling_time is None:
-        sampling_time = float(data_raw['settings'].split("YINC:")[1].split("\n")[0])
+        sampling_time = float(data_raw['settings'].split("XINC:")[1].split("\n")[0])
 
     print(f"Loaded {ch_key} with {len(data)} samples.")
 
@@ -102,8 +102,16 @@ if has_displacement_plot:
     axs[plot_index].set_ylabel("Displacement")
     axs[plot_index].legend()
 
+# Force x-tick labels on all subplots
+for ax in axs:
+    ax.tick_params(labelbottom=True)
+
+# Optional: format x-axis numbers more clearly (6 decimal places)
+axs[-1].xaxis.set_major_formatter(plt.FormatStrFormatter('%.6f'))
+
 axs[-1].set_xlabel("Time (s)")
 plt.tight_layout()
+plt.subplots_adjust(bottom=0.1)  # Prevent clipping of x-axis labels
 plt.show()
 
 # ========== Diagnostics ==========
@@ -114,6 +122,6 @@ if velocity_channel in data_dict:
 
 print(f"\nSampling time: {sampling_time:.9f} s")
 print(f"Segment length: {segment_length} samples")
-print(f"Displacement segments: {len(disp_raw)}")
+print(f"Displacement segments: {len(disp_raw) if has_displacement_plot else 'N/A'}")
 print(f"Signal duration: {x[-1]:.6f} seconds")
 print("================================")

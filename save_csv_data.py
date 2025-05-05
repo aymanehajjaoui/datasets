@@ -5,7 +5,7 @@ from scipy.signal import savgol_filter
 
 # ========== Parameters ==========
 date_id = "20250319"
-record_id = "300"
+record_id = "420"
 base_path = f"/home/predator/Documents/redpitaya_ws/datasets/collected_data/s{date_id}"
 save_base = f"/home/predator/Documents/redpitaya_ws/datasets/saved_csv_data/s{date_id}/s{date_id}_{record_id}"
 channels = [1, 2, 3, 4]
