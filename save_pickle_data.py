@@ -15,11 +15,11 @@ save_base = "/home/predator/Documents/redpitaya_ws/datasets/saved_data"
 if custom_folder:
     npy_folder = f"{save_base}/npy/s{date_id}/s{date_id}_{record_id}/{data_length}/{custom_folder}"
     pickle_folder = f"{save_base}/pickle/s{date_id}/s{date_id}_{record_id}/{data_length}/{custom_folder}"
-    brainmix_folder = f"{pickle_folder}/BrainMix"
+    brainmix_folder = f"/home/predator/Documents/redpitaya_ws/datasets/BrainMix_plugin_datasets/s{date_id}_{record_id}/{data_length}"
 else:
     npy_folder = f"{save_base}/npy/s{date_id}/s{date_id}_{record_id}/{data_length}"
     pickle_folder = f"{save_base}/pickle/s{date_id}/s{date_id}_{record_id}/{data_length}"
-    brainmix_folder = f"{pickle_folder}/BrainMix"
+    brainmix_folder = f"/home/predator/Documents/redpitaya_ws/datasets/BrainMix_plugin_datasets/s{date_id}_{record_id}/{data_length}"
 
 # Ensure destination folders exist
 os.makedirs(pickle_folder, exist_ok=True)
