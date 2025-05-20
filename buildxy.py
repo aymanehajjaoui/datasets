@@ -5,7 +5,7 @@ import os
 
 # === CONFIG ===
 date_id = "20250319"
-record_id = "420"
+record_id = "300"
 segment_lengths = [256, 48]
 x_channels = ["ch1"]
 y_channel = "ch3"

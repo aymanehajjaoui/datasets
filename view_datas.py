@@ -6,11 +6,11 @@ import pandas as pd
 
 # Configurable Parameters
 date_id = "20250319"
-record_id = "303"
-data_len = "long"  # "short" or "long"
+record_id = "409"
+data_len = "short"  # "short" or "long"
 data_type = "pickle"  # "npy", "npz", "csv", "pickle"
-segment_length = "109"
-custom_folder = "Exp_1310_405M"
+segment_length = "256"
+custom_folder = "Exp_1310_405"
 if custom_folder:
     base_path = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/{data_type}/s{date_id}/s{date_id}_{record_id}/{segment_length}/{custom_folder}"
 else:
