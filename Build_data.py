@@ -9,8 +9,8 @@ date_id = "20250319"
 record_id = "403"
 resampled_lengths = [48, 256]
 
-base_path = f"/home/predator/Documents/redpitaya_ws/datasets/collected_data/s{date_id}"
-signal_channels = ["ch1"]
+base_path = os.path.join(os.getcwd(), f"collected_data/s{date_id}")
+signal_channels = ["ch1","ch2"]
 velocity_channels = ["ch3"]
 
 # ========== Helpers ==========
@@ -25,19 +25,19 @@ def scaledata(data):
     offset = float(settings.split("YOR:")[1].split("\n")[0])
     return trace * gain - offset
 
-def compute_displacement(signal, seg_len):
-    usable_len = (len(signal) // seg_len) * seg_len
-    segments = signal[:usable_len].reshape(-1, seg_len)
+def savitzky(signal):
+    window_length = 4001 if 4000 % 2 == 0 else 4000
+    return savgol_filter(signal, window_length, 3)
+
+def compute_displacement(signal, segment_len):
+    usable_len = (len(signal) // segment_len) * segment_len
+    segments = signal[:usable_len].reshape(-1, segment_len)
     return np.array([s[-1] - s[0] for s in segments])
 
 def segment_and_resample(signal, orig_len, target_len):
     usable_len = (len(signal) // orig_len) * orig_len
     segments = signal[:usable_len].reshape(-1, orig_len)
     return np.array([resample(s, target_len) for s in segments])
-
-def savitzky(signal):
-    window_length = 4001 if 4000 % 2 == 0 else 4000
-    return savgol_filter(signal, window_length, 3)
 
 # ========== Sampling Info ==========
 first_file = os.path.join(base_path, f"s{date_id}_{record_id}_rtb_{signal_channels[0]}.pickle")
@@ -57,9 +57,9 @@ for resampled_len in resampled_lengths:
     print(f"\n=== Processing for resampled segment length: {resampled_len} ===")
 
     # Paths for csv, npy, pickle
-    base_csv = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/csv/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
-    base_npy = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/npy/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
-    base_pickle = f"/home/predator/Documents/redpitaya_ws/datasets/saved_data/pickle/s{date_id}/s{date_id}_{record_id}/{resampled_len}"
+    base_csv = os.path.join(os.getcwd(), f"saved_data/csv/s{date_id}/s{date_id}_{record_id}/{resampled_len}")
+    base_npy = os.path.join(os.getcwd(), f"saved_data/npy/s{date_id}/s{date_id}_{record_id}/{resampled_len}")
+    base_pickle = os.path.join(os.getcwd(), f"saved_data/pickle/s{date_id}/s{date_id}_{record_id}/{resampled_len}")
 
     # Create folders
     Path(base_csv).mkdir(parents=True, exist_ok=True)
@@ -81,7 +81,7 @@ for resampled_len in resampled_lengths:
 
         base_filename = f"s{date_id}_{record_id}_{ch}_{resampled_len}"
 
-        # Save CSV
+        # Save CSV (one segment per row)
         out_csv = os.path.join(base_csv, base_filename + ".csv")
         np.savetxt(out_csv, resampled_segments, delimiter=",", fmt="%.6f")
         print(f"Saved CSV: {out_csv} — shape: {resampled_segments.shape}")
@@ -109,48 +109,73 @@ for resampled_len in resampled_lengths:
 
         raw_data = scaledata(load_data(path))
         filtered_data = savitzky(raw_data)
-        displacement = compute_displacement(filtered_data, segment_orig_len)
 
-        base_filename = f"s{date_id}_{record_id}_{ch}_velocity"
+        disp_raw = compute_displacement(raw_data, segment_orig_len)
+        disp_filtered = compute_displacement(filtered_data, segment_orig_len)
 
-        # Save CSV
-        out_csv = os.path.join(base_csv, base_filename + ".csv")
-        np.savetxt(out_csv, displacement.reshape(-1, 1), delimiter=",", fmt="%.6f")
-        print(f"Saved CSV: {out_csv} — shape: {displacement.shape}")
+        # Save raw displacement
+        base_filename_raw = f"s{date_id}_{record_id}_{ch}_velocity_raw"
+        out_csv_raw = os.path.join(base_csv, base_filename_raw + ".csv")
+        np.savetxt(out_csv_raw, disp_raw.reshape(-1, 1), delimiter=",", fmt="%.6f")
+        print(f"Saved CSV: {out_csv_raw} — shape: {disp_raw.shape}")
 
-        # Save NPY
-        out_npy = os.path.join(base_npy, base_filename + ".npy")
-        np.save(out_npy, displacement)
+        # Save filtered displacement
+        base_filename_filtered = f"s{date_id}_{record_id}_{ch}_velocity_filtered"
+        out_csv_filtered = os.path.join(base_csv, base_filename_filtered + ".csv")
+        np.savetxt(out_csv_filtered, disp_filtered.reshape(-1, 1), delimiter=",", fmt="%.6f")
+        print(f"Saved CSV: {out_csv_filtered} — shape: {disp_filtered.shape}")
+
+        # Save NPY and Pickle for filtered displacement only
+        out_npy = os.path.join(base_npy, base_filename_filtered + ".npy")
+        np.save(out_npy, disp_filtered)
         print(f"Saved NPY: {out_npy}")
 
-        # Save Pickle
-        out_pickle = os.path.join(base_pickle, base_filename + ".pickle")
+        out_pickle = os.path.join(base_pickle, base_filename_filtered + ".pickle")
         with open(out_pickle, 'wb') as f:
-            pickle.dump(displacement, f)
+            pickle.dump(disp_filtered, f)
         print(f"Saved Pickle: {out_pickle}")
 
-        velocity_data.append(displacement)
+        velocity_data.append(disp_filtered)
         velocity_titles.append(ch)
 
     # --- Plotting ---
-    all_data = signal_data + velocity_data
-    all_titles = [f"Signal: {ch}" for ch in signal_titles] + [f"Displacement: {ch}" for ch in velocity_titles]
-    colors = ['blue'] * len(signal_data) + ['orange'] * len(velocity_data)
+    all_data = signal_data
+    all_titles = [f"Signal: {ch}" for ch in signal_titles]
+    colors = ['blue'] * len(signal_data)
 
-    if all_data:
-        fig, axs = plt.subplots(len(all_data), 1, figsize=(12, 3 * len(all_data)), sharex=False)
-        if len(all_data) == 1:
+    # Add displacement subplot if velocity data exists
+    include_displacement = bool(velocity_data)
+    n_subplots = len(all_data) + (1 if include_displacement else 0)
+
+    if all_data or include_displacement:
+        fig, axs = plt.subplots(n_subplots, 1, figsize=(12, 3 * n_subplots), sharex=False)
+        if n_subplots == 1:
             axs = [axs]
 
+        # Plot all signal channels
         for i, data in enumerate(all_data):
-            timebase = sampling_time if "Signal" in all_titles[i] else 0.001
+            timebase = sampling_time
             t = np.arange(len(data)) * timebase
             axs[i].plot(t, data, color=colors[i], linewidth=0.7)
             axs[i].set_title(f"{all_titles[i]} — {len(data)} samples")
-            axs[i].set_ylabel("Amplitude" if "Signal" in all_titles[i] else "Displacement")
+            axs[i].set_ylabel("Amplitude")
             axs[i].grid(True)
 
-        axs[-1].set_xlabel("Time (s)")
-        fig.suptitle(f"Signal and Displacement (Resampled to {resampled_len})", fontsize=14)
+        # Plot both raw and filtered displacement
+        if include_displacement:
+            disp_raw = compute_displacement(raw_data, segment_orig_len)
+            disp_filtered = compute_displacement(filtered_data, segment_orig_len)
+            t_disp = np.linspace(0, len(raw_data) * sampling_time, len(disp_raw))
+
+            ax_disp = axs[-1]
+            ax_disp.plot(t_disp, disp_raw, label="Displacement (Raw)", color='blue', linewidth=1.0)
+            ax_disp.plot(t_disp, disp_filtered, label="Displacement (Filtered)", color='orange', linewidth=1.0)
+            ax_disp.set_title(f"Displacement (Raw & Filtered)")
+            ax_disp.set_ylabel("Displacement")
+            ax_disp.set_xlabel("Time (s)")
+            ax_disp.legend()
+            ax_disp.grid(True)
+
+        fig.suptitle(f"Signals and Displacement (Resampled to {resampled_len})", fontsize=14)
         plt.tight_layout()
         plt.show()
