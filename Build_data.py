@@ -6,7 +6,7 @@ from scipy.signal import savgol_filter, resample
 
 # ========== Parameters ==========
 date_id = "20250319"
-record_id = "300"
+record_id = "403"
 resampled_lengths = [48, 256]
 
 base_path = f"/home/predator/Documents/redpitaya_ws/datasets/collected_data/s{date_id}"

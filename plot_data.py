@@ -5,7 +5,7 @@ from scipy.signal import savgol_filter
 
 # ========== Parameters ==========
 date_id = "20250319"
-record_id = "420"
+record_id = "403"
 base_path = f"/home/predator/Documents/redpitaya_ws/datasets/collected_data/s{date_id}"
 channels = [1, 2, 3, 4]
 velocity_channel = "ch3"  # Channel used to compute displacement
